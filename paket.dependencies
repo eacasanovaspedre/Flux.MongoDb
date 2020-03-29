@@ -1,0 +1,6 @@
+source https://api.nuget.org/v3/index.json
+
+source: none
+nuget FSharp.Core
+nuget Flux.Core
+nuget MongoDb.Driver
