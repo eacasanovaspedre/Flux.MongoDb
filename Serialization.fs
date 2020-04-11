@@ -97,7 +97,6 @@ let registerSerializers() =
     NEStringSerializer.Register()
 
 let registerClassMapForRecord<'T> idAsObjectId isId shouldMapStringIdToObjectId additionalConfig =
-    printfn "Registering record %A" typeof<'T>
     let ctor = FSharpValue.PreComputeRecordConstructorInfo(typeof<'T>)
     let fields = FSharpType.GetRecordFields(typeof<'T>)
     let fieldNames = fields |> Array.map (fun f -> f.Name)
