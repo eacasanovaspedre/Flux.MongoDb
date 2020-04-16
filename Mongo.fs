@@ -81,6 +81,12 @@ module Database =
 
     let inline internal getMongoCollection database = (getMongoDatabase database).GetCollection<_>
 
+module UpdateDefinition =
+
+    let field (selector: Selector<_, _>) value = Builders<_>.Update.Set(selector, value)
+
+    let combine (selectors: _ seq) = Builders<_>.Update.Combine selectors
+
 module Collection =
 
     let inline get collectionName database =
@@ -91,50 +97,54 @@ module Collection =
 
     let inline query (Collection collection) = collection.AsQueryable()
 
-    let createDocument createWithId =
+    let createDocumentWithObjectId createWithId =
         ()
         |> ObjectId.create
         |> ObjectId.asString
         |> createWithId
 
-    let insertOne (Collection collection) session doc =
-        match session with
-        | None -> collection.InsertOne doc
-        | Some(Session session) -> collection.InsertOne(session, doc)
+    let insertOne (Collection collection) doc = collection.InsertOne doc
 
-    let insertMany (Collection collection) session docs =
-        match session with
-        | None -> collection.InsertMany(docs)
-        | Some(Session session) -> collection.InsertMany(session, docs)
+    let insertOne' (Collection collection) (Session session) doc = collection.InsertOne(session, doc, null)
 
-    let insertOneAdHoc collection session createWithId = insertOne collection session (createDocument createWithId)
+    let insertMany (Collection collection) docs = collection.InsertMany(docs)
 
-    let deleteOne (filter: _ Pred) (Collection collection) session =
-        match session with
-        | None -> collection.DeleteOne(filter)
-        | Some(Session session) -> collection.DeleteOne(session, filter)
+    let insertMany' (Collection collection) (Session session) docs = collection.InsertMany(session, docs, null)
 
-    let deleteMany (filter: _ Pred) (Collection collection) session =
-        match session with
-        | None -> collection.DeleteMany(filter)
-        | Some(Session session) -> collection.DeleteMany(session, filter)
+    let deleteOne (Collection collection) (filter: _ Pred) = collection.DeleteOne(filter)
 
-    let updateField (filter: _ Pred) (selector: Selector<_, _>) value ((Collection collection) as col) =
-        let update = Builders<_>.Update.Set(selector, value)
-        col, collection.UpdateOne(filter, update)
+    let deleteOne' (Collection collection) (filter: _ Pred) (Session session) = collection.DeleteOne(session, filter)
 
-    let updateFieldDefinition (selector: Selector<_, _>) value = Builders<_>.Update.Set(selector, value)
+    let deleteMany (Collection collection) (filter: _ Pred) = collection.DeleteMany(filter)
 
-    let updateCombine ((Collection collection) as col) (filter: _ Pred) (updateDefinitions: UpdateDefinition<_> seq) =
+    let deleteMany' (Collection collection) (filter: _ Pred) (Session session) = collection.DeleteMany(session, filter)
+
+    let updateField (Collection collection) (selector: Selector<_, _>) (filter: _ Pred) value =
+        let update = UpdateDefinition.field selector value
+        collection.UpdateOne(filter, update)
+
+    let updateField' (Collection collection) (selector: Selector<_, _>) (Session session) (filter: _ Pred) value =
+        let update = UpdateDefinition.field selector value
+        collection.UpdateOne(session, filter, update)
+
+    let updateFields (Collection collection) (filter: _ Pred) (updateDefinitions: UpdateDefinition<_> seq) =
+        let update = UpdateDefinition.combine updateDefinitions
+        collection.UpdateOne(filter, update)
+
+    let updateFields'
+        (Collection collection)
+        (Session session)
+        (filter: _ Pred)
+        (updateDefinitions: UpdateDefinition<_> seq)
+        =
         let update = Builders<_>.Update.Combine updateDefinitions
-        col, collection.UpdateOne(filter, update)
+        collection.UpdateOne(session, filter, update)
 
-    let replaceOne (filter: _ Pred) object ((Collection collection) as col) = col, collection.ReplaceOne(filter, object)
+    let replaceOne (Collection collection) (filter: _ Pred) isUpsert object =
+        collection.ReplaceOne(filter, object, ReplaceOptions(IsUpsert = isUpsert))
 
-    let replaceOneAsync (filter: _ Pred) object ((Collection collection) as col) =
-        async {
-            let! result = collection.ReplaceOneAsync(filter, object) |> Async.AwaitTask
-            return col, result }
+    let replaceOne' (Collection collection) (Session session) (filter: _ Pred) isUpsert object =
+        collection.ReplaceOne(session, filter, object, ReplaceOptions(IsUpsert = isUpsert))
 
     let inline unwind (selector: Selector<_, _>) (query: _ IQueryable) = selector |> query.SelectMany
 

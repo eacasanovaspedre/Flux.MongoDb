@@ -96,7 +96,7 @@ let registerSerializers() =
     EmailSerializer.Register()
     NEStringSerializer.Register()
 
-let registerClassMapForRecord<'T> idAsObjectId isId shouldMapStringIdToObjectId additionalConfig =
+let registerClassMapForRecord<'T> idAsObjectId isId shouldMapStringIdToObjectId postConfig =
     let ctor = FSharpValue.PreComputeRecordConstructorInfo(typeof<'T>)
     let fields = FSharpType.GetRecordFields(typeof<'T>)
     let fieldNames = fields |> Array.map (fun f -> f.Name)
@@ -120,5 +120,5 @@ let registerClassMapForRecord<'T> idAsObjectId isId shouldMapStringIdToObjectId 
                      | Some false -> ()
                      | None -> ()))
             do if idAsObjectId then cm.IdMemberMap.SetSerializer(StringSerializer(BsonType.ObjectId)) |> ignore
-            additionalConfig cm))
+            postConfig cm))
     |> ignore
