@@ -89,6 +89,11 @@ module UpdateDefinition =
 
 module Collection =
 
+    let inline bulkWrite (Collection collection) writeModels = collection.BulkWrite writeModels
+
+    let inline bulkWrite' (Collection collection) (Session session) writeModels =
+        collection.BulkWrite(session, writeModels)
+
     let inline get collectionName database =
         collectionName
         |> NEString.stringValue
@@ -140,11 +145,26 @@ module Collection =
         let update = Builders<_>.Update.Combine updateDefinitions
         collection.UpdateOne(session, filter, update)
 
-    let replaceOne (Collection collection) (filter: _ Pred) isUpsert object =
-        collection.ReplaceOne(filter, object, ReplaceOptions(IsUpsert = isUpsert))
+    let replaceOne (Collection collection) (filter: _ Pred) isUpsert document =
+        collection.ReplaceOne(filter, document, ReplaceOptions(IsUpsert = isUpsert))
 
-    let replaceOne' (Collection collection) (Session session) (filter: _ Pred) isUpsert object =
-        collection.ReplaceOne(session, filter, object, ReplaceOptions(IsUpsert = isUpsert))
+    let replaceOne' (Collection collection) (Session session) (filter: _ Pred) isUpsert document =
+        collection.ReplaceOne(session, filter, document, ReplaceOptions(IsUpsert = isUpsert))
+
+    let replaceMany collection (filterBuilder: _ -> _ Pred) isUpsert =
+        let createFilter = filterBuilder >> Builders<_>.Filter.Where
+
+        let createModel replacement =
+            let filter = createFilter replacement in ReplaceOneModel(filter, replacement, IsUpsert = isUpsert) :> WriteModel<_>
+        Seq.map createModel >> bulkWrite collection
+
+    let replaceMany' collection session (filterBuilder: _ -> _ Pred) isUpsert =
+        let createFilter = filterBuilder >> Builders<_>.Filter.Where
+
+        let createModel replacement =
+            let filter = createFilter replacement in ReplaceOneModel(filter, replacement, IsUpsert = isUpsert) :> WriteModel<_>
+
+        Seq.map createModel >> (bulkWrite' session collection)
 
     let inline unwind (selector: Selector<_, _>) (query: _ IQueryable) = selector |> query.SelectMany
 
