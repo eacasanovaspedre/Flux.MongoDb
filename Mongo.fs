@@ -118,11 +118,11 @@ module Collection =
 
     let deleteOne (Collection collection) (filter: _ Pred) = collection.DeleteOne(filter)
 
-    let deleteOne' (Collection collection) (filter: _ Pred) (Session session) = collection.DeleteOne(session, filter)
+    let deleteOne' (Collection collection) (Session session) (filter: _ Pred) = collection.DeleteOne(session, filter)
 
     let deleteMany (Collection collection) (filter: _ Pred) = collection.DeleteMany(filter)
 
-    let deleteMany' (Collection collection) (filter: _ Pred) (Session session) = collection.DeleteMany(session, filter)
+    let deleteMany' (Collection collection) (Session session) (filter: _ Pred) = collection.DeleteMany(session, filter)
 
     let updateField (Collection collection) (selector: Selector<_, _>) (filter: _ Pred) value =
         let update = UpdateDefinition.field selector value
@@ -151,7 +151,7 @@ module Collection =
     let replaceOne' (Collection collection) (Session session) (filter: _ Pred) isUpsert document =
         collection.ReplaceOne(session, filter, document, ReplaceOptions(IsUpsert = isUpsert))
 
-    [<Experimental("Not sure how the filter builder will work")>]
+    ///Experimental
     let replaceMany collection (filterBuilder: _ -> _ Pred) isUpsert =
         let createFilter = filterBuilder >> Builders<_>.Filter.Where
 
@@ -159,7 +159,7 @@ module Collection =
             let filter = createFilter replacement in ReplaceOneModel(filter, replacement, IsUpsert = isUpsert) :> WriteModel<_>
         Seq.map createModel >> bulkWrite collection
 
-    [<Experimental("Not sure how the filter builder will work")>]
+    ///Experimental
     let replaceMany' collection session (filterBuilder: _ -> _ Pred) isUpsert =
         let createFilter = filterBuilder >> Builders<_>.Filter.Where
 
